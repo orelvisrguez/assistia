@@ -13,6 +13,11 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
+  // Estudiantes usan su propio layout móvil sin sidebar
+  if (session.user.role === 'student') {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen flex">
       <Sidebar user={session.user} />

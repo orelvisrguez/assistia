@@ -42,38 +42,36 @@ export default function StudentScan() {
     setCameraError(null);
     setResult(null);
 
+    // Solicitar permiso de cámara primero
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      // Detener el stream temporal, html5-qrcode lo manejará
+      stream.getTracks().forEach(track => track.stop());
+    } catch (permErr: unknown) {
+      const msg = permErr instanceof Error ? permErr.message : 'Permiso denegado';
+      setCameraError(`Permiso de cámara denegado: ${msg}`);
+      setStatus('idle');
+      return;
+    }
+
     // Esperar a que el DOM esté listo
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     try {
       const scanner = new Html5Qrcode('qr-reader');
       scannerRef.current = scanner;
 
-      // Intentar primero con cámara trasera
-      try {
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          async (decodedText) => { await handleScan(decodedText); },
-          () => {}
-        );
-      } catch {
-        // Fallback: intentar con cualquier cámara disponible
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          await scanner.start(
-            devices[0].id,
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            async (decodedText) => { await handleScan(decodedText); },
-            () => {}
-          );
-        } else {
-          throw new Error('No se encontraron cámaras');
-        }
-      }
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
+        async (decodedText) => { await handleScan(decodedText); },
+        () => {}
+      );
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
-      setCameraError(`No se pudo acceder a la cámara: ${errorMsg}`);
+      setCameraError(`Error al iniciar escáner: ${errorMsg}`);
       setStatus('idle');
     }
   };
