@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 import { auth } from '@/lib/auth/config';
 import { db, classSessions, attendanceRecords, enrollments } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
