@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Users, Calendar, Play, Eye, BarChart2, Sparkles, TrendingUp, StopCircle } from 'lucide-react';
-import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,13 +62,15 @@ export default function ProfessorCourses() {
     try {
       const res = await fetch(`/api/professor/sessions/${sessionId}/end`, { method: 'POST' });
       if (res.ok) {
-        toast.success('Clase terminada');
+        alert('Clase terminada exitosamente');
         fetchCourses();
       } else {
-        toast.error('Error al terminar la clase');
+        const error = await res.json();
+        alert(`Error: ${error.error || 'No se pudo terminar la clase'}`);
       }
     } catch (error) {
-      toast.error('Error al terminar la clase');
+      console.error('Error:', error);
+      alert('Error al terminar la clase');
     }
   };
 
