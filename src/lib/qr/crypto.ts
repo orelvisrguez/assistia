@@ -57,14 +57,14 @@ export function verifyQRPayload(
     
     const { sid, t, ts } = JSON.parse(decrypted);
     
-    // Check timestamp (max 20 seconds tolerance)
-    if (Date.now() - ts > 20000) {
+    // Check timestamp (max 60 seconds tolerance)
+    if (Date.now() - ts > 60000) {
       return { valid: false, reason: 'Código QR expirado' };
     }
     
-    // Verify TOTP with ±1 interval window
+    // Verify TOTP with ±3 interval window (30 sec tolerance)
     const currentTime = Math.floor(Date.now() / 1000);
-    for (let offset = -1; offset <= 1; offset++) {
+    for (let offset = -3; offset <= 3; offset++) {
       const checkTime = currentTime + (offset * QR_ROTATION_INTERVAL);
       const expectedTotp = generateTOTP(sessionSecret, checkTime);
       if (t === expectedTotp) {
