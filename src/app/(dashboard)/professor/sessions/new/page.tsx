@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QrCode, Users, Clock, StopCircle, MapPin, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { 
+  QrCode, Users, Clock, StopCircle, MapPin, RefreshCw, 
+  CheckCircle2, Maximize2, Minimize2, Sparkles, Wifi
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +49,7 @@ export default function NewSession() {
   const [isStarting, setIsStarting] = useState(false);
   const [useGeolocation, setUseGeolocation] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -166,170 +170,293 @@ export default function NewSession() {
     }
   };
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Pre-session setup screen
   if (!session) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Iniciar Nueva Sesión</h1>
-          <p className="text-muted-foreground">Configura y comienza una clase con código QR</p>
-        </div>
+      <div className="max-w-2xl mx-auto space-y-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-6 shadow-xl shadow-indigo-500/30">
+            <QrCode className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            Iniciar Nueva Sesion
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
+            Configura y comienza una clase con codigo QR
+          </p>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-6 space-y-6">
-            <div className="space-y-2">
-              <Label>Seleccionar Curso</Label>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Elige un curso" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.code} - {course.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="font-medium">Validación por ubicación</p>
-                  <p className="text-sm text-muted-foreground">
-                    Requiere que los estudiantes estén cerca físicamente
-                  </p>
-                </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="border-2 border-dashed border-indigo-200 dark:border-indigo-900 overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+            <CardContent className="p-8 space-y-8">
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Seleccionar Curso</Label>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger className="h-14 text-lg">
+                    <SelectValue placeholder="Elige un curso para iniciar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id} className="py-3">
+                        <span className="font-medium">{course.code}</span> - {course.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Switch checked={useGeolocation} onCheckedChange={setUseGeolocation} />
-            </div>
 
-            <Button 
-              className="w-full gap-2" 
-              size="lg"
-              onClick={startSession}
-              disabled={!selectedCourse || isStarting}
-            >
-              <QrCode className="h-5 w-5" />
-              {isStarting ? 'Iniciando...' : 'Iniciar Sesión'}
-            </Button>
-          </CardContent>
-        </Card>
+              <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-900">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-blue-500 text-white">
+                    <MapPin className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-lg">Validacion por ubicacion</p>
+                    <p className="text-sm text-muted-foreground">
+                      Los estudiantes deben estar fisicamente cerca
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={useGeolocation} onCheckedChange={setUseGeolocation} className="scale-125" />
+              </div>
+
+              <Button 
+                className="w-full h-16 text-xl gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-xl shadow-indigo-500/25" 
+                size="lg"
+                onClick={startSession}
+                disabled={!selectedCourse || isStarting}
+              >
+                {isStarting ? (
+                  <>
+                    <RefreshCw className="h-6 w-6 animate-spin" />
+                    Iniciando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-6 w-6" />
+                    Iniciar Sesion
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
 
+  // Active session with QR display
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className={`space-y-6 ${isFullscreen ? 'p-8 bg-background min-h-screen' : ''}`}>
+      {/* Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+      >
         <div>
-          <h1 className="text-3xl font-bold">Sesión en Curso</h1>
-          <p className="text-muted-foreground">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse" />
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400">
+              Sesion Activa
+            </Badge>
+          </div>
+          <h1 className="text-3xl font-bold">
             {courses.find(c => c.id === selectedCourse)?.name}
+          </h1>
+          <p className="text-muted-foreground">
+            {courses.find(c => c.id === selectedCourse)?.code}
           </p>
         </div>
-        <Button variant="destructive" onClick={endSession} className="gap-2">
-          <StopCircle className="h-5 w-5" />
-          Finalizar Sesión
-        </Button>
-      </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={toggleFullscreen} className="gap-2">
+            {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+            {isFullscreen ? 'Salir' : 'Pantalla Completa'}
+          </Button>
+          <Button variant="destructive" onClick={endSession} className="gap-2 shadow-lg">
+            <StopCircle className="h-5 w-5" />
+            Finalizar
+          </Button>
+        </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* QR Code Display */}
-        <Card className="overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-indigo-500 to-purple-500" />
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <QrCode className="h-5 w-5" />
-                Código QR
-              </span>
-              <Badge variant="outline" className="animate-pulse">
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Auto-refresh
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-6 pb-8">
-            <motion.div
-              key={session.qrData}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="p-6 bg-white rounded-2xl shadow-lg"
-            >
-              <QRCode value={session.qrData} size={280} level="H" />
-            </motion.div>
+      <div className={`grid gap-6 ${isFullscreen ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'}`}>
+        {/* QR Code Display - Main Focus */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={isFullscreen ? 'lg:col-span-2' : ''}
+        >
+          <Card className="overflow-hidden border-2 shadow-2xl">
+            <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+            <CardContent className={`flex flex-col items-center gap-8 ${isFullscreen ? 'py-12' : 'py-8'}`}>
+              {/* QR Code with animation */}
+              <motion.div
+                key={session.qrData}
+                initial={{ scale: 0.8, opacity: 0, rotateY: 180 }}
+                animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+                transition={{ type: 'spring', stiffness: 200 }}
+                className="relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-3xl blur-2xl" />
+                <div className={`relative p-8 bg-white rounded-3xl shadow-2xl ${isFullscreen ? 'p-12' : ''}`}>
+                  <QRCode 
+                    value={session.qrData} 
+                    size={isFullscreen ? 400 : 300} 
+                    level="H"
+                    style={{ display: 'block' }}
+                  />
+                </div>
+                
+                {/* Corner decorations */}
+                <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
+                <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-purple-500 rounded-tr-xl" />
+                <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-purple-500 rounded-bl-xl" />
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
+              </motion.div>
 
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 text-6xl font-bold font-mono">
-                <Clock className="h-10 w-10 text-muted-foreground" />
-                <span className={session.timeLeft <= 3 ? 'text-red-500' : ''}>{session.timeLeft}s</span>
+              {/* Timer */}
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center gap-4">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <RefreshCw className={`h-8 w-8 ${session.timeLeft <= 3 ? 'text-red-500' : 'text-indigo-500'}`} />
+                  </motion.div>
+                  <span className={`text-7xl font-bold font-mono tabular-nums ${session.timeLeft <= 3 ? 'text-red-500' : ''}`}>
+                    {session.timeLeft}
+                  </span>
+                  <span className="text-3xl text-muted-foreground">s</span>
+                </div>
+                <p className="text-muted-foreground">El codigo se actualiza automaticamente</p>
               </div>
-              <p className="text-muted-foreground mt-2">hasta la siguiente actualización</p>
-            </div>
 
-            {location && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 text-green-500" />
-                Validación de ubicación activa
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Live Attendance */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Asistencia en Tiempo Real
-              </span>
-              <Badge className="bg-emerald-500">
-                {session.attendanceCount}/{session.totalStudents}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              <AnimatePresence mode="popLayout">
-                {attendance.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-12">
-                    Esperando registros de asistencia...
-                  </p>
-                ) : (
-                  attendance.map((record, index) => (
-                    <motion.div
-                      key={record.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${record.status === 'present' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                          {record.status === 'present' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                        </div>
-                        <div>
-                          <p className="font-medium">{record.studentName}</p>
-                          <p className="text-sm text-muted-foreground">{record.studentEmail}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={record.status === 'present' ? 'default' : 'secondary'}>
-                          {record.status === 'present' ? 'Presente' : 'Tardanza'}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">{record.timestamp}</p>
-                      </div>
-                    </motion.div>
-                  ))
+              {/* Status badges */}
+              <div className="flex flex-wrap justify-center gap-3">
+                <Badge variant="outline" className="px-4 py-2 text-base gap-2">
+                  <Wifi className="h-4 w-4 text-green-500" />
+                  Conexion activa
+                </Badge>
+                {location && (
+                  <Badge variant="outline" className="px-4 py-2 text-base gap-2">
+                    <MapPin className="h-4 w-4 text-blue-500" />
+                    Geolocalizacion activa
+                  </Badge>
                 )}
-              </AnimatePresence>
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Live Attendance Panel */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="h-full">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-indigo-500" />
+                  Asistencia en Vivo
+                </span>
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    key={session.attendanceCount}
+                    initial={{ scale: 1.5 }}
+                    animate={{ scale: 1 }}
+                    className="text-3xl font-bold text-emerald-600"
+                  >
+                    {session.attendanceCount}
+                  </motion.div>
+                  <span className="text-muted-foreground">/ {session.totalStudents}</span>
+                </div>
+              </CardTitle>
+              
+              {/* Progress bar */}
+              <div className="mt-4">
+                <div className="h-3 bg-muted rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(session.attendanceCount / session.totalStudents) * 100}%` }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {Math.round((session.attendanceCount / session.totalStudents) * 100)}% de asistencia
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className={`space-y-2 overflow-y-auto ${isFullscreen ? 'max-h-[500px]' : 'max-h-[400px]'}`}>
+                <AnimatePresence mode="popLayout">
+                  {attendance.length === 0 ? (
+                    <div className="text-center py-12">
+                      <motion.div
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-950 mb-4"
+                      >
+                        <Users className="h-8 w-8 text-indigo-500" />
+                      </motion.div>
+                      <p className="text-muted-foreground">Esperando estudiantes...</p>
+                    </div>
+                  ) : (
+                    attendance.map((record, index) => (
+                      <motion.div
+                        key={record.id}
+                        initial={{ opacity: 0, x: -20, scale: 0.9 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-900"
+                      >
+                        <div className="flex items-center gap-3">
+                          <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="p-2 rounded-full bg-emerald-500 text-white"
+                          >
+                            <CheckCircle2 className="h-5 w-5" />
+                          </motion.div>
+                          <div>
+                            <p className="font-semibold">{record.studentName}</p>
+                            <p className="text-sm text-muted-foreground">{record.timestamp}</p>
+                          </div>
+                        </div>
+                        <Badge className="bg-emerald-500 hover:bg-emerald-600">
+                          Presente
+                        </Badge>
+                      </motion.div>
+                    ))
+                  )}
+                </AnimatePresence>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
