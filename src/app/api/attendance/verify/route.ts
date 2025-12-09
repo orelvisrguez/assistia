@@ -93,17 +93,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Determine if late (more than 15 minutes after session started)
+    const LATE_THRESHOLD_MINUTES = 15;
+    const sessionStartTime = validSession.startedAt;
+    const now = new Date();
+    const minutesLate = sessionStartTime 
+      ? Math.floor((now.getTime() - new Date(sessionStartTime).getTime()) / 60000)
+      : 0;
+    
+    const status = minutesLate > LATE_THRESHOLD_MINUTES ? 'late' : 'present';
+
     // Record attendance
     await db.insert(attendanceRecords).values({
       sessionId: validSession.id,
       studentId: session.user.id,
-      status: 'present',
+      status,
       latitude,
       longitude,
       deviceInfo,
     });
 
-    return NextResponse.json({ success: true, message: '¡Asistencia registrada!' });
+    const message = status === 'late' 
+      ? `Asistencia registrada (Tardanza: +${minutesLate} min)`
+      : '¡Asistencia registrada!';
+
+    return NextResponse.json({ success: true, message, status });
   } catch (error) {
     console.error('Verify error:', error);
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });

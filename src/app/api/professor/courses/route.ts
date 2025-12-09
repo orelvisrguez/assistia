@@ -65,7 +65,8 @@ export async function GET() {
           studentCount: students[0]?.count || 0,
           totalSessions: sessions[0]?.count || 0,
           avgAttendance,
-          hasActiveSession: activeSession.length > 0
+          hasActiveSession: activeSession.length > 0,
+          activeSessionId: activeSession[0]?.id || null
         };
       })
     );

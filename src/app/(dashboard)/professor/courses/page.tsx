@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Users, Calendar, Play, Eye, BarChart2, Sparkles, TrendingUp } from 'lucide-react';
+import { BookOpen, Users, Calendar, Play, Eye, BarChart2, Sparkles, TrendingUp, StopCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,7 @@ interface Course {
   totalSessions: number;
   avgAttendance: number;
   hasActiveSession: boolean;
+  activeSessionId?: string;
 }
 
 const gradients = [
@@ -54,6 +56,21 @@ export default function ProfessorCourses() {
     if (rate >= 80) return 'from-emerald-500 to-green-500';
     if (rate >= 60) return 'from-amber-500 to-yellow-500';
     return 'from-red-500 to-orange-500';
+  };
+
+  const endSession = async (sessionId: string, courseName: string) => {
+    if (!confirm(`¿Terminar la clase de ${courseName}?`)) return;
+    try {
+      const res = await fetch(`/api/professor/sessions/${sessionId}/end`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('Clase terminada');
+        fetchCourses();
+      } else {
+        toast.error('Error al terminar la clase');
+      }
+    } catch (error) {
+      toast.error('Error al terminar la clase');
+    }
   };
 
   return (
@@ -197,12 +214,22 @@ export default function ProfessorCourses() {
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
-                    <Link href={`/professor/sessions/new?course=${course.id}`} className="flex-1">
-                      <Button className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg">
-                        <Sparkles className="h-4 w-4" />
-                        Iniciar Clase
+                    {course.hasActiveSession && course.activeSessionId ? (
+                      <Button 
+                        onClick={() => endSession(course.activeSessionId!, course.name)}
+                        className="flex-1 gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg"
+                      >
+                        <StopCircle className="h-4 w-4" />
+                        Terminar Clase
                       </Button>
-                    </Link>
+                    ) : (
+                      <Link href={`/professor/sessions/new?course=${course.id}`} className="flex-1">
+                        <Button className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg">
+                          <Sparkles className="h-4 w-4" />
+                          Iniciar Clase
+                        </Button>
+                      </Link>
+                    )}
                     <Link href={`/professor/courses/${course.id}`}>
                       <Button variant="outline" size="icon" className="h-10 w-10">
                         <Eye className="h-4 w-4" />
