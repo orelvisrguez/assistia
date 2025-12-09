@@ -91,7 +91,11 @@ export default function StudentScan() {
       const res = await fetch('/api/attendance/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrData, location })
+        body: JSON.stringify({ 
+          qrPayload: qrData, 
+          latitude: location?.lat, 
+          longitude: location?.lng 
+        })
       });
 
       const data = await res.json();
