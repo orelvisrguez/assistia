@@ -338,7 +338,7 @@ export default function LoginPage() {
               </div>
               <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 <span>Estudiante:</span>
-                <code className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded">estudiante1@demo.com / est123</code>
+                <code className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded">estudiante1@demo.com / student123</code>
               </div>
             </div>
           </motion.div>

@@ -4,11 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   QrCode, Camera, CheckCircle2, XCircle, MapPin, 
-  Loader2, RefreshCw, Zap, Shield
+  Loader2, RefreshCw, Shield, Sparkles, AlertCircle
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Html5Qrcode } from 'html5-qrcode';
 
 type ScanStatus = 'idle' | 'scanning' | 'processing' | 'success' | 'error';
@@ -29,22 +27,14 @@ export default function StudentScan() {
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    // Get location on mount
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        (err) => {
-          setLocationError('No se pudo obtener la ubicación');
-        },
+        (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setLocationError('No se pudo obtener la ubicacion'),
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
-
-    return () => {
-      stopScanner();
-    };
+    return () => { stopScanner(); };
   }, []);
 
   const startScanner = async () => {
@@ -58,24 +48,20 @@ export default function StudentScan() {
 
       await scanner.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 280, height: 280 } },
-        async (decodedText) => {
-          await handleScan(decodedText);
-        },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        async (decodedText) => { await handleScan(decodedText); },
         () => {}
       );
     } catch (err) {
-      setCameraError('No se pudo acceder a la cámara. Verifica los permisos.');
+      setCameraError('No se pudo acceder a la camara');
       setStatus('idle');
     }
   };
 
   const stopScanner = async () => {
     if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-      } catch (e) {}
+      try { await scannerRef.current.stop(); } catch (e) {}
+      scannerRef.current = null;
     }
   };
 
@@ -87,10 +73,7 @@ export default function StudentScan() {
       const res = await fetch('/api/attendance/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          qrData,
-          location
-        })
+        body: JSON.stringify({ qrData, location })
       });
 
       const data = await res.json();
@@ -98,23 +81,17 @@ export default function StudentScan() {
       if (res.ok) {
         setResult({
           success: true,
-          message: 'Asistencia registrada exitosamente',
+          message: 'Asistencia registrada',
           courseName: data.courseName,
-          timestamp: new Date().toLocaleTimeString('es-ES')
+          timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
         });
         setStatus('success');
       } else {
-        setResult({
-          success: false,
-          message: data.error || 'Error al registrar asistencia'
-        });
+        setResult({ success: false, message: data.error || 'Error al registrar' });
         setStatus('error');
       }
     } catch (error) {
-      setResult({
-        success: false,
-        message: 'Error de conexión. Intenta nuevamente.'
-      });
+      setResult({ success: false, message: 'Error de conexion' });
       setStatus('error');
     }
   };
@@ -125,216 +102,283 @@ export default function StudentScan() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Escanear Código QR
+    <div className="min-h-[80vh] flex flex-col">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center mb-6"
+      >
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          Escanear QR
         </h1>
-        <p className="text-muted-foreground mt-2">
-          Apunta la cámara al código QR del profesor
+        <p className="text-sm text-slate-500 mt-1">
+          Apunta la camara al codigo del profesor
         </p>
-      </div>
+      </motion.div>
 
-      {/* Location Status */}
-      <div className="flex justify-center">
-        <Badge 
-          variant={location ? 'default' : 'secondary'}
-          className={`gap-2 ${location ? 'bg-green-500' : ''}`}
-        >
-          <MapPin className="h-3 w-3" />
-          {location ? 'Ubicación detectada' : locationError || 'Obteniendo ubicación...'}
-        </Badge>
-      </div>
+      {/* Location Badge */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex justify-center mb-6"
+      >
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+          location 
+            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+            : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+        }`}>
+          <MapPin className="h-4 w-4" />
+          {location ? 'Ubicacion detectada' : locationError || 'Obteniendo ubicacion...'}
+        </div>
+      </motion.div>
 
-      {/* Scanner Card */}
-      <Card className="overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-        <CardContent className="p-6">
-          <AnimatePresence mode="wait">
-            {status === 'idle' && (
-              <motion.div
-                key="idle"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center space-y-6 py-8"
+      {/* Scanner Container */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <AnimatePresence mode="wait">
+          {status === 'idle' && (
+            <motion.div
+              key="idle"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="text-center space-y-8"
+            >
+              {/* Animated QR Icon */}
+              <div className="relative mx-auto w-40 h-40">
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl opacity-20"
+                />
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  className="absolute inset-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30"
+                >
+                  <QrCode className="h-20 w-20 text-white" />
+                </motion.div>
+                
+                {/* Corner decorations */}
+                <div className="absolute -top-2 -left-2 w-6 h-6 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
+                <div className="absolute -top-2 -right-2 w-6 h-6 border-t-4 border-r-4 border-purple-500 rounded-tr-xl" />
+                <div className="absolute -bottom-2 -left-2 w-6 h-6 border-b-4 border-l-4 border-purple-500 rounded-bl-xl" />
+                <div className="absolute -bottom-2 -right-2 w-6 h-6 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Listo para escanear</h3>
+                <p className="text-slate-500 text-sm">
+                  El codigo QR cambia cada 10 segundos
+                </p>
+              </div>
+
+              <Button 
+                size="lg"
+                onClick={startScanner}
+                className="w-full max-w-xs h-14 text-lg gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-2xl shadow-lg shadow-indigo-500/25"
               >
-                <div className="relative mx-auto w-32 h-32">
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl opacity-20 animate-pulse" />
-                  <div className="absolute inset-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                    <QrCode className="h-16 w-16 text-white" />
+                <Camera className="h-6 w-6" />
+                Activar Camara
+              </Button>
+
+              {cameraError && (
+                <div className="flex items-center gap-2 text-red-500 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  {cameraError}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {status === 'scanning' && (
+            <motion.div
+              key="scanning"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full max-w-sm space-y-4"
+            >
+              <div className="relative aspect-square rounded-3xl overflow-hidden bg-black shadow-2xl">
+                <div id="qr-reader" className="w-full h-full" />
+                
+                {/* Scanning overlay */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {/* Corner frame */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56">
+                    <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-indigo-400 rounded-tl-2xl" />
+                    <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-indigo-400 rounded-tr-2xl" />
+                    <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-indigo-400 rounded-bl-2xl" />
+                    <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-indigo-400 rounded-br-2xl" />
+                    
+                    {/* Scanning line */}
+                    <motion.div
+                      className="absolute left-2 right-2 h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent rounded-full shadow-lg shadow-indigo-500/50"
+                      animate={{ top: ['10%', '90%', '10%'] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    />
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">Listo para escanear</h3>
-                  <p className="text-muted-foreground">
-                    Presiona el botón para activar la cámara
-                  </p>
+              </div>
+
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Buscando codigo QR...
                 </div>
-                <Button 
-                  size="lg" 
-                  onClick={startScanner}
-                  className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+              </div>
+
+              <Button 
+                variant="outline" 
+                onClick={() => { stopScanner(); setStatus('idle'); }}
+                className="w-full h-12 rounded-xl"
+              >
+                Cancelar
+              </Button>
+            </motion.div>
+          )}
+
+          {status === 'processing' && (
+            <motion.div
+              key="processing"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center space-y-6"
+            >
+              <div className="relative mx-auto w-28 h-28">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  className="absolute inset-0 border-4 border-indigo-500/30 rounded-full"
+                  style={{ borderTopColor: 'rgb(99 102 241)' }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Shield className="h-12 w-12 text-indigo-500" />
+                </div>
+              </div>
+              <div>
+                <p className="text-lg font-semibold">Verificando...</p>
+                <p className="text-sm text-slate-500">Validando token y ubicacion</p>
+              </div>
+            </motion.div>
+          )}
+
+          {status === 'success' && result && (
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center space-y-6"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+                className="relative mx-auto w-32 h-32"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: 2 }}
+                  className="absolute inset-0 bg-emerald-500/20 rounded-full"
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/30">
+                  <CheckCircle2 className="h-16 w-16 text-white" />
+                </div>
+                
+                {/* Sparkles */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="absolute -top-2 -right-2"
                 >
-                  <Camera className="h-5 w-5" />
-                  Activar Cámara
-                </Button>
-                {cameraError && (
-                  <p className="text-red-500 text-sm">{cameraError}</p>
+                  <Sparkles className="h-6 w-6 text-amber-400" />
+                </motion.div>
+              </motion.div>
+
+              <div>
+                <h3 className="text-2xl font-bold text-emerald-600">Asistencia Registrada</h3>
+                {result.courseName && (
+                  <p className="text-lg text-slate-600 mt-2">{result.courseName}</p>
                 )}
-              </motion.div>
-            )}
-
-            {status === 'scanning' && (
-              <motion.div
-                key="scanning"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-4"
-              >
-                <div className="relative aspect-square max-w-sm mx-auto rounded-2xl overflow-hidden bg-black">
-                  <div id="qr-reader" className="w-full h-full" />
-                  {/* Scanning overlay */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute inset-0 border-2 border-white/30" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64">
-                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-lg" />
-                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-lg" />
-                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-lg" />
-                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-lg" />
-                      <motion.div
-                        className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"
-                        animate={{ top: ['0%', '100%', '0%'] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                      />
-                    </div>
+                {result.timestamp && (
+                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-700 dark:text-emerald-400 text-sm font-medium">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {result.timestamp}
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-muted-foreground flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Buscando código QR...
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  onClick={() => { stopScanner(); setStatus('idle'); }}
-                  className="w-full"
-                >
-                  Cancelar
-                </Button>
-              </motion.div>
-            )}
+                )}
+              </div>
 
-            {status === 'processing' && (
-              <motion.div
-                key="processing"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-12 space-y-4"
+              <Button 
+                onClick={resetScanner}
+                className="gap-2 h-12 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600"
               >
-                <div className="relative mx-auto w-24 h-24">
-                  <div className="absolute inset-0 border-4 border-indigo-500/30 rounded-full" />
-                  <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin" />
-                  <Shield className="absolute inset-0 m-auto h-10 w-10 text-indigo-500" />
-                </div>
-                <p className="text-lg font-medium">Verificando código...</p>
-                <p className="text-muted-foreground text-sm">Validando token y ubicación</p>
-              </motion.div>
-            )}
+                <RefreshCw className="h-5 w-5" />
+                Escanear Otro
+              </Button>
+            </motion.div>
+          )}
 
-            {status === 'success' && result && (
+          {status === 'error' && result && (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center space-y-6"
+            >
               <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-8 space-y-6"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200 }}
+                className="mx-auto w-28 h-28 bg-gradient-to-br from-red-400 to-rose-500 rounded-full flex items-center justify-center shadow-xl shadow-red-500/30"
               >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', delay: 0.2 }}
-                  className="relative mx-auto w-24 h-24"
-                >
-                  <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center">
-                    <CheckCircle2 className="h-12 w-12 text-white" />
-                  </div>
-                </motion.div>
-                <div>
-                  <h3 className="text-2xl font-bold text-green-600">Asistencia Registrada</h3>
-                  {result.courseName && (
-                    <p className="text-lg text-muted-foreground mt-2">{result.courseName}</p>
-                  )}
-                  {result.timestamp && (
-                    <Badge variant="outline" className="mt-3">
-                      <Zap className="h-3 w-3 mr-1" />
-                      {result.timestamp}
-                    </Badge>
-                  )}
-                </div>
-                <Button onClick={resetScanner} className="gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  Escanear Otro
-                </Button>
+                <XCircle className="h-14 w-14 text-white" />
               </motion.div>
-            )}
 
-            {status === 'error' && result && (
-              <motion.div
-                key="error"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-8 space-y-6"
+              <div>
+                <h3 className="text-2xl font-bold text-red-600">Error</h3>
+                <p className="text-slate-600 mt-2">{result.message}</p>
+              </div>
+
+              <Button 
+                onClick={resetScanner}
+                variant="outline"
+                className="gap-2 h-12 px-6 rounded-xl"
               >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', delay: 0.2 }}
-                  className="mx-auto w-24 h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center"
-                >
-                  <XCircle className="h-12 w-12 text-white" />
-                </motion.div>
-                <div>
-                  <h3 className="text-2xl font-bold text-red-600">Error</h3>
-                  <p className="text-muted-foreground mt-2">{result.message}</p>
-                </div>
-                <Button onClick={resetScanner} variant="outline" className="gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  Intentar de Nuevo
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </CardContent>
-      </Card>
+                <RefreshCw className="h-5 w-5" />
+                Intentar de Nuevo
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Tips */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Consejos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-              Asegúrate de estar en el aula cuando escanees el código
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-              El código QR cambia cada 10 segundos por seguridad
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-              Mantén el dispositivo estable mientras escaneas
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+      {/* Tips - Only show in idle */}
+      {status === 'idle' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4"
+        >
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Consejos</p>
+          <div className="space-y-2">
+            {[
+              'Asegurate de estar en el aula',
+              'El codigo cambia cada 10 segundos',
+              'Manten el dispositivo estable'
+            ].map((tip, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm text-slate-500">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                {tip}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
